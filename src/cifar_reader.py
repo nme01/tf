@@ -1,4 +1,7 @@
 import os
+import sys
+import tarfile
+import urllib.request as request
 from typing import List
 
 import tensorflow as tf
@@ -6,6 +9,8 @@ import tensorflow as tf
 
 class CifarReader(object):
     """ A class reading the CIFAR-10 data. """
+    DATA_URL = "http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz"
+    """ URL to a file containing CIFAR images. """
 
     IMAGE_SIZE = 24
     """ Size of images being processed (not necessarily original image size). """
@@ -52,8 +57,33 @@ class CifarReader(object):
 
         self.data_dir = data_dir
 
-    def load_dataset(self, batch_size: int, is_use_train_data: bool, is_distort_image: bool):
-        if is_use_train_data:
+    def download_dataset_if_necessary(self):
+        """Download and extract the tarball from Alex's website."""
+        dest_directory = self.data_dir
+        file_name = self.DATA_URL.split('/')[-1]
+        file_path = os.path.join(dest_directory, file_name)
+
+        if not os.path.exists(dest_directory):
+            os.makedirs(dest_directory)
+        elif not os.path.exists(file_path):
+            file_path = self._download_cifar_data(file_path, file_name)
+
+        tarfile.open(file_path, 'r:gz').extractall(dest_directory)
+
+    def _download_cifar_data(self, file_path, file_name):
+        def _progress(count, block_size, total_size):
+            progress = float(count * block_size) / total_size * 100.0
+            sys.stdout.write('\r>> Downloading {:s} {:.1f}%'.format(file_name, progress))
+            sys.stdout.flush()
+
+        file_path, _ = request.urlretrieve(self.DATA_URL, file_path, _progress)
+        statinfo = os.stat(file_path)
+        sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
+
+        return file_path
+
+    def load_dataset(self, batch_size: int, use_train_data: bool, distort_image: bool):
+        if use_train_data:
             file_names = [os.path.join(self.data_dir, 'data_batch_{:d}.bin'.format(i)) for i in range(1, 6)]
             num_examples_per_epoch = self.TRAIN_NUM_OF_EXAMPLES_PER_EPOCH
         else:
@@ -62,7 +92,7 @@ class CifarReader(object):
 
         original_image, label = self._load_image_and_label(file_names)
 
-        if is_distort_image:
+        if distort_image:
             # crop image randomly
             cropped_image = tf.random_crop(original_image, [self.IMAGE_SIZE, self.IMAGE_SIZE, 3])
             preprocessed_image = self._distort_image(cropped_image)
@@ -73,7 +103,7 @@ class CifarReader(object):
             preprocessed_image = tf.cast(cropped_image, tf.float32)
 
         return self._generate_image_label_batch(preprocessed_image, label, num_examples_per_epoch, batch_size,
-                                                shuffle=is_distort_image)
+                                                shuffle=distort_image)
 
     def _load_image_and_label(self, file_names: List[str]):
         filename_queue = tf.train.string_input_producer(file_names)
@@ -126,6 +156,6 @@ class CifarReader(object):
                 capacity=min_queue_examples + 3 * batch_size)
 
         # Display the training images in the visualizer.
-        tf.image_summary('images', images)
+        tf.summary.image('images', images)
 
         return images, tf.reshape(label_batch, [batch_size])
