@@ -1,0 +1,131 @@
+import os
+from typing import List
+
+import tensorflow as tf
+
+
+class CifarReader(object):
+    """ A class reading the CIFAR-10 data. """
+
+    IMAGE_SIZE = 24
+    """ Size of images being processed (not necessarily original image size). """
+
+    # INFORMATION ABOUT DATA BEING LOADED
+    ORIGINAL_IMAGE_SIZE = 32
+    """ Size of one side of a square CIFAR-10 image. """
+
+    NUM_OF_COLOR_CHANNELS = 3
+    """ Number of channels in the input CIFAR-10 images. All images are RGB images, thus there are 3 channels. """
+
+    IMAGE_BYTES = ORIGINAL_IMAGE_SIZE**2 * NUM_OF_COLOR_CHANNELS
+    """ Number of bytes per image. """
+
+    LABEL_BYTES = 1
+    """ Number of bytes per label in the input file. """
+
+    RECORD_BYTES = LABEL_BYTES + IMAGE_BYTES
+    """ Number of bytes per CIFAR example, which consists of label data followed by the image data. """
+
+    NUM_CLASSES = 10
+    """
+    Number of classes defined for the problem of classification (for CIFAR-10 it's 10, for CIFAR-100 it's 100).
+    """
+
+    TRAIN_NUM_OF_EXAMPLES_PER_EPOCH = 50000
+    """
+    Number of examples in the training dataset.
+    """
+
+    EVAL_NUM_OF_EXAMPLES_PER_EPOCH = 10000
+    """
+    Number of examples in the evaluation dataset.
+    """
+
+    def __init__(self, data_dir: str):
+        """
+            Parameters
+            ----------
+            data_dir
+                path to directory storing the CIFAR-10 data
+        """
+        self.MIN_FRACTION_OF_EXAMPLES_IN_QUEUE = 0.4  # TODO comment
+
+        self.data_dir = data_dir
+
+    def load_dataset(self, batch_size: int, is_use_train_data: bool, is_distort_image: bool):
+        if is_use_train_data:
+            file_names = [os.path.join(self.data_dir, 'data_batch_{:d}.bin'.format(i)) for i in range(1, 6)]
+            num_examples_per_epoch = self.TRAIN_NUM_OF_EXAMPLES_PER_EPOCH
+        else:
+            file_names = [os.path.join(self.data_dir, 'test_batch.bin')]
+            num_examples_per_epoch = self.EVAL_NUM_OF_EXAMPLES_PER_EPOCH
+
+        original_image, label = self._load_image_and_label(file_names)
+
+        if is_distort_image:
+            # crop image randomly
+            cropped_image = tf.random_crop(original_image, [self.IMAGE_SIZE, self.IMAGE_SIZE, 3])
+            preprocessed_image = self._distort_image(cropped_image)
+        else:
+            # crop image centrally
+            cropped_image = tf.image.resize_image_with_crop_or_pad(original_image, target_height=self.IMAGE_SIZE,
+                                                                   target_width=self.IMAGE_SIZE)
+            preprocessed_image = tf.cast(cropped_image, tf.float32)
+
+        return self._generate_image_label_batch(preprocessed_image, label, num_examples_per_epoch, batch_size,
+                                                shuffle=is_distort_image)
+
+    def _load_image_and_label(self, file_names: List[str]):
+        filename_queue = tf.train.string_input_producer(file_names)
+
+        record_key, record_value = tf.FixedLengthRecordReader(record_bytes=self.RECORD_BYTES).read(filename_queue)
+        record_bytes = tf.decode_raw(record_value, tf.uint8)  # convert string to uint8
+
+        label_raw_data = tf.slice(record_bytes, [0], [self.LABEL_BYTES])  # cut out the label raw data
+        label = tf.cast(label_raw_data, tf.int32)  # convert the raw data into int32
+
+        image_raw_data = tf.slice(record_bytes, [self.LABEL_BYTES], [self.IMAGE_BYTES])  # cut out the image raw data
+
+        # image raw data is a series of numbers ordered by color channels by rows by columns. It needs to be reshaped
+        # from 1st rank tensor into 3rd rank one
+        reshaped_image = tf.reshape(image_raw_data, [self.NUM_OF_COLOR_CHANNELS, self.ORIGINAL_IMAGE_SIZE,
+                                    self.ORIGINAL_IMAGE_SIZE])
+
+        # for convenience we reorder the image so the bytes are ordered by rows by columns by color channels.
+        transposed_image = tf.transpose(reshaped_image, [1, 2, 0])
+
+        return transposed_image, label
+
+    def _distort_image(self, image):
+        distorted_image = tf.image.random_flip_left_right(image)
+
+        # EXPERIMENT with order and parameters of the following operations
+        distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)
+        distorted_image = tf.image.random_contrast(distorted_image, lower=0.2, upper=1.8)
+
+        return distorted_image
+
+    def _generate_image_label_batch(self, image, label, num_examples_per_epoch, batch_size, shuffle):
+        # normalize so that mean=0 and variance=1
+        standardized_image = tf.image.per_image_standardization(image)
+        min_queue_examples = int(num_examples_per_epoch * self.MIN_FRACTION_OF_EXAMPLES_IN_QUEUE)
+
+        num_preprocess_threads = 16
+        if shuffle:
+            images, label_batch = tf.train.shuffle_batch(
+                [standardized_image, label],
+                batch_size=batch_size,
+                num_threads=num_preprocess_threads,
+                capacity=min_queue_examples + 3 * batch_size,
+                min_after_dequeue=min_queue_examples)
+        else:
+            images, label_batch = tf.train.batch(
+                [standardized_image, label],
+                batch_size=batch_size,
+                num_threads=num_preprocess_threads,
+                capacity=min_queue_examples + 3 * batch_size)
+
+        # Display the training images in the visualizer.
+        tf.image_summary('images', images)
+
+        return images, tf.reshape(label_batch, [batch_size])
