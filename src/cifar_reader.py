@@ -5,6 +5,7 @@ import urllib.request as request
 from typing import List
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 
 
 class CifarReader(object):
@@ -98,7 +99,11 @@ class CifarReader(object):
             preprocessed_image = tf.image.resize_image_with_crop_or_pad(original_image, target_height=self.IMAGE_SIZE,
                                                                         target_width=self.IMAGE_SIZE)
 
-        return self._generate_image_label_batch(preprocessed_image, label, num_examples_per_epoch, batch_size,
+        # normalize so that mean=0 and variance=1
+        with ops.name_scope(None, 'standardize_image', [preprocessed_image]):
+            standardized_image = tf.image.per_image_standardization(preprocessed_image)
+
+        return self._generate_image_label_batch(standardized_image, label, num_examples_per_epoch, batch_size,
                                                 shuffle=distort_image)
 
     def _download_cifar_data(self, file_path, file_name):
@@ -114,41 +119,41 @@ class CifarReader(object):
         return file_path
 
     def _load_image_and_label(self, file_names: List[str]):
-        filename_queue = tf.train.string_input_producer(file_names)
+        with ops.name_scope(None, 'load_image_and_label', [file_names]):
+            filename_queue = tf.train.string_input_producer(file_names)
 
-        record_key, record_value = tf.FixedLengthRecordReader(record_bytes=self.RECORD_BYTES).read(filename_queue)
-        record_bytes = tf.decode_raw(record_value, tf.uint8)  # convert string to uint8
+            record_key, record_value = tf.FixedLengthRecordReader(record_bytes=self.RECORD_BYTES).read(filename_queue)
+            record_bytes = tf.decode_raw(record_value, tf.uint8)  # convert string to uint8
 
-        label_raw_data = tf.slice(record_bytes, [0], [self.LABEL_BYTES])  # cut out the label raw data
-        label = tf.cast(label_raw_data, tf.int32)  # convert the raw data into int32
+            label_raw_data = tf.slice(record_bytes, [0], [self.LABEL_BYTES])  # cut out the label raw data
+            label = tf.cast(label_raw_data, tf.int32)  # convert the raw data into int32
 
-        image_raw_data = tf.slice(record_bytes, [self.LABEL_BYTES], [self.IMAGE_BYTES])  # cut out the image raw data
+            # cut out the image raw data
+            image_raw_data = tf.slice(record_bytes, [self.LABEL_BYTES], [self.IMAGE_BYTES])
 
-        # image raw data is a series of numbers ordered by color channels by rows by columns. It needs to be reshaped
-        # from 1st rank tensor into 3rd rank one
-        reshaped_image = tf.reshape(image_raw_data, [self.NUM_OF_COLOR_CHANNELS, self.ORIGINAL_IMAGE_SIZE,
-                                                     self.ORIGINAL_IMAGE_SIZE])
+            # image raw data is a series of numbers ordered by color channels by rows by columns.
+            # It needs to be reshaped from 1st rank tensor into 3rd rank one
+            reshaped_image = tf.reshape(image_raw_data, [self.NUM_OF_COLOR_CHANNELS, self.ORIGINAL_IMAGE_SIZE,
+                                                         self.ORIGINAL_IMAGE_SIZE])
 
-        # for convenience we reorder the image so the bytes are ordered by rows by columns by color channels.
-        transposed_image = tf.transpose(reshaped_image, [1, 2, 0])
-        float32_img = tf.cast(transposed_image, tf.float32)
+            # for convenience we reorder the image so the bytes are ordered by rows by columns by color channels.
+            transposed_image = tf.transpose(reshaped_image, [1, 2, 0])
+            float32_img = tf.cast(transposed_image, tf.float32)
 
         return float32_img, label
 
     def _distort_image(self, image):
-        distorted_image = tf.image.random_flip_left_right(image)
+        with ops.name_scope(None, 'distort_image', [image]):
+            distorted_image = tf.image.random_flip_left_right(image)
 
-        # EXPERIMENT with order and parameters of the following operations
-        distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)
-        distorted_image = tf.image.random_contrast(distorted_image, lower=0.2, upper=1.8)
+            # EXPERIMENT with order and parameters of the following operations
+            distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)
+            distorted_image = tf.image.random_contrast(distorted_image, lower=0.2, upper=1.8)
 
-        return distorted_image
+            return distorted_image
 
     def _generate_image_label_batch(self, image, label, num_examples_per_epoch, batch_size, shuffle):
-        # normalize so that mean=0 and variance=1
-        standardized_image = tf.image.per_image_standardization(image)
         min_queue_examples = int(num_examples_per_epoch * self.MIN_FRACTION_OF_EXAMPLES_IN_QUEUE)
-
         num_preprocess_threads = 16
 
         # must be larger than min_queue_examples and the amount larger determines the maximum we will prefetch.
@@ -156,18 +161,12 @@ class CifarReader(object):
         queue_capacity = min_queue_examples + 3 * batch_size
 
         if shuffle:
-            images, label_batch = tf.train.shuffle_batch(
-                [standardized_image, label],
-                batch_size=batch_size,
-                num_threads=num_preprocess_threads,
-                capacity=queue_capacity,
-                min_after_dequeue=min_queue_examples)
+            images, label_batch = tf.train.shuffle_batch([image, label], batch_size=batch_size,
+                                                         num_threads=num_preprocess_threads, capacity=queue_capacity,
+                                                         min_after_dequeue=min_queue_examples)
         else:
-            images, label_batch = tf.train.batch(
-                [standardized_image, label],
-                batch_size=batch_size,
-                num_threads=num_preprocess_threads,
-                capacity=queue_capacity)
+            images, label_batch = tf.train.batch([image, label], batch_size=batch_size,
+                                                 num_threads=num_preprocess_threads, capacity=queue_capacity)
 
         # display the training images in the visualizer
         tf.summary.image('images', images, max_outputs=15)
