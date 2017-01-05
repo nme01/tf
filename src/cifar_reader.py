@@ -9,8 +9,12 @@ import tensorflow as tf
 
 class CifarReader(object):
     """ A class reading the CIFAR-10 data. """
+
     DATA_URL = "http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz"
     """ URL to a file containing CIFAR images. """
+
+    CIFAR_DATA_SUBFOLDER_NAME = 'cifar-10-batches-bin'
+    """ Name of the folder in all CIFAR data are being stored after extracting the CIFAR archive. """
 
     IMAGE_SIZE = 24
     """ Size of images being processed (not necessarily original image size). """
@@ -65,7 +69,7 @@ class CifarReader(object):
 
         if not os.path.exists(dest_directory):
             os.makedirs(dest_directory)
-        elif not os.path.exists(file_path):
+        if not os.path.exists(file_path):
             file_path = self._download_cifar_data(file_path, file_name)
 
         tarfile.open(file_path, 'r:gz').extractall(dest_directory)
@@ -83,11 +87,12 @@ class CifarReader(object):
         return file_path
 
     def load_dataset(self, batch_size: int, use_train_data: bool, distort_image: bool):
+        cifar_folder_path = os.path.join(self.data_dir, self.CIFAR_DATA_SUBFOLDER_NAME)
         if use_train_data:
-            file_names = [os.path.join(self.data_dir, 'data_batch_{:d}.bin'.format(i)) for i in range(1, 6)]
+            file_names = [os.path.join(cifar_folder_path, 'data_batch_{:d}.bin'.format(i)) for i in range(1, 6)]
             num_examples_per_epoch = self.TRAIN_NUM_OF_EXAMPLES_PER_EPOCH
         else:
-            file_names = [os.path.join(self.data_dir, 'test_batch.bin')]
+            file_names = [os.path.join(cifar_folder_path, 'test_batch.bin')]
             num_examples_per_epoch = self.EVAL_NUM_OF_EXAMPLES_PER_EPOCH
 
         original_image, label = self._load_image_and_label(file_names)
@@ -119,7 +124,7 @@ class CifarReader(object):
         # image raw data is a series of numbers ordered by color channels by rows by columns. It needs to be reshaped
         # from 1st rank tensor into 3rd rank one
         reshaped_image = tf.reshape(image_raw_data, [self.NUM_OF_COLOR_CHANNELS, self.ORIGINAL_IMAGE_SIZE,
-                                    self.ORIGINAL_IMAGE_SIZE])
+                                                     self.ORIGINAL_IMAGE_SIZE])
 
         # for convenience we reorder the image so the bytes are ordered by rows by columns by color channels.
         transposed_image = tf.transpose(reshaped_image, [1, 2, 0])
