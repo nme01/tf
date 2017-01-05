@@ -78,18 +78,6 @@ class CifarReader(object):
 
         tarfile.open(file_path, 'r:gz').extractall(dest_directory)
 
-    def _download_cifar_data(self, file_path, file_name):
-        def _progress(count, block_size, total_size):
-            progress = float(count * block_size) / total_size * 100.0
-            sys.stdout.write('\r>> Downloading {:s} {:.1f}%'.format(file_name, progress))
-            sys.stdout.flush()
-
-        file_path, _ = request.urlretrieve(self.DATA_URL, file_path, _progress)
-        statinfo = os.stat(file_path)
-        sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
-
-        return file_path
-
     def load_dataset(self, batch_size: int, use_train_data: bool, distort_image: bool):
         cifar_folder_path = os.path.join(self.data_dir, self.CIFAR_DATA_SUBFOLDER_NAME)
         if use_train_data:
@@ -112,6 +100,18 @@ class CifarReader(object):
 
         return self._generate_image_label_batch(preprocessed_image, label, num_examples_per_epoch, batch_size,
                                                 shuffle=distort_image)
+
+    def _download_cifar_data(self, file_path, file_name):
+        def _progress(count, block_size, total_size):
+            progress = float(count * block_size) / total_size * 100.0
+            sys.stdout.write('\r>> Downloading {:s} {:.1f}%'.format(file_name, progress))
+            sys.stdout.flush()
+
+        file_path, _ = request.urlretrieve(self.DATA_URL, file_path, _progress)
+        statinfo = os.stat(file_path)
+        sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
+
+        return file_path
 
     def _load_image_and_label(self, file_names: List[str]):
         filename_queue = tf.train.string_input_producer(file_names)
