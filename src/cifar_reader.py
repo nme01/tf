@@ -103,9 +103,8 @@ class CifarReader(object):
             preprocessed_image = self._distort_image(cropped_image)
         else:
             # crop image centrally
-            cropped_image = tf.image.resize_image_with_crop_or_pad(original_image, target_height=self.IMAGE_SIZE,
-                                                                   target_width=self.IMAGE_SIZE)
-            preprocessed_image = tf.cast(cropped_image, tf.float32)
+            preprocessed_image = tf.image.resize_image_with_crop_or_pad(original_image, target_height=self.IMAGE_SIZE,
+                                                                        target_width=self.IMAGE_SIZE)
 
         return self._generate_image_label_batch(preprocessed_image, label, num_examples_per_epoch, batch_size,
                                                 shuffle=distort_image)
@@ -128,8 +127,9 @@ class CifarReader(object):
 
         # for convenience we reorder the image so the bytes are ordered by rows by columns by color channels.
         transposed_image = tf.transpose(reshaped_image, [1, 2, 0])
+        float32_img = tf.cast(transposed_image, tf.float32)
 
-        return transposed_image, label
+        return float32_img, label
 
     def _distort_image(self, image):
         distorted_image = tf.image.random_flip_left_right(image)
@@ -160,7 +160,7 @@ class CifarReader(object):
                 num_threads=num_preprocess_threads,
                 capacity=min_queue_examples + 3 * batch_size)
 
-        # Display the training images in the visualizer.
-        tf.summary.image('images', images)
+        # display the training images in the visualizer
+        tf.summary.image('images', images, max_outputs=15)
 
         return images, tf.reshape(label_batch, [batch_size])

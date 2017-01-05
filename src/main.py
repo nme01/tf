@@ -31,13 +31,11 @@ if tf.gfile.Exists(LOG_DIR):
 tf.gfile.MakeDirs(LOG_DIR)
 
 with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
-    images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=False)
-    init_op = tf.global_variables_initializer()
+    images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
     summary_op = tf.summary.merge_all()
     tf.train.start_queue_runners(sess=sess)
 
     summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
-    sess.run(init_op)
     summary_result = sess.run(summary_op)
     summary_writer.add_summary(summary_result)
     summary_writer.close()
