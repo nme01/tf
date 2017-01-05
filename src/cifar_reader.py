@@ -57,7 +57,11 @@ class CifarReader(object):
             data_dir
                 path to directory storing the CIFAR-10 data
         """
-        self.MIN_FRACTION_OF_EXAMPLES_IN_QUEUE = 0.4  # TODO comment
+        self.MIN_FRACTION_OF_EXAMPLES_IN_QUEUE = 0.4
+        """
+        Defines from how big part of a buffer we will randomly sample while shuffling - bigger means better shuffling
+        but slower start up and more memory used.
+        """
 
         self.data_dir = data_dir
 
@@ -146,19 +150,24 @@ class CifarReader(object):
         min_queue_examples = int(num_examples_per_epoch * self.MIN_FRACTION_OF_EXAMPLES_IN_QUEUE)
 
         num_preprocess_threads = 16
+
+        # must be larger than min_queue_examples and the amount larger determines the maximum we will prefetch.
+        # Recommendation: min_queue_examples + (num_threads + a small safety margin) * batch_size
+        queue_capacity = min_queue_examples + 3 * batch_size
+
         if shuffle:
             images, label_batch = tf.train.shuffle_batch(
                 [standardized_image, label],
                 batch_size=batch_size,
                 num_threads=num_preprocess_threads,
-                capacity=min_queue_examples + 3 * batch_size,
+                capacity=queue_capacity,
                 min_after_dequeue=min_queue_examples)
         else:
             images, label_batch = tf.train.batch(
                 [standardized_image, label],
                 batch_size=batch_size,
                 num_threads=num_preprocess_threads,
-                capacity=min_queue_examples + 3 * batch_size)
+                capacity=queue_capacity)
 
         # display the training images in the visualizer
         tf.summary.image('images', images, max_outputs=15)
