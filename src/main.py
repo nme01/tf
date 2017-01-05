@@ -3,6 +3,7 @@ import os
 import sys
 
 import tensorflow as tf
+from tensorflow.python.training.coordinator import Coordinator
 
 from cifar_reader import CifarReader
 
@@ -32,9 +33,15 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() 
 
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
     summary_op = tf.summary.merge_all()
-    tf.train.start_queue_runners(sess=sess)
+
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    tf.train.start_queue_runners(sess=sess, coord=coord)
+
+    summary_result = sess.run(summary_op)
+    coord.request_stop()
+    coord.join(threads)
 
     summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
-    summary_result = sess.run(summary_op)
     summary_writer.add_summary(summary_result)
     summary_writer.close()
