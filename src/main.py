@@ -5,6 +5,7 @@ import sys
 import tensorflow as tf
 from tensorflow.python.training.coordinator import Coordinator
 
+from cifar_classifier import CifarClassifier
 from cifar_reader import CifarReader
 
 TMP_DIR = os.path.join('..', 'tmp')
@@ -22,26 +23,49 @@ BATCH_SIZE = 1000
 LOG_DIR = os.path.join(TMP_DIR, 'summary')
 MAX_STEPS = 10
 
-# clean LOG_DIR
-if tf.gfile.Exists(LOG_DIR):
-    tf.gfile.DeleteRecursively(LOG_DIR)
-tf.gfile.MakeDirs(LOG_DIR)
 
-with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
+def main():
+    clean_log_dir()
+    with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
+        init, logits, summary_op = build_model()
+        run_model(init, logits, sess, summary_op)
+
+
+def clean_log_dir():
+    if tf.gfile.Exists(LOG_DIR):
+        tf.gfile.DeleteRecursively(LOG_DIR)
+    tf.gfile.MakeDirs(LOG_DIR)
+
+
+def build_model():
     reader = CifarReader(data_dir=TMP_DIR)
+    classifier = CifarClassifier(batch_size=BATCH_SIZE)
     reader.download_dataset_if_necessary()
-
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
+    logits = classifier.classify(images)
+    init = tf.global_variables_initializer()
     summary_op = tf.summary.merge_all()
 
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-    tf.train.start_queue_runners(sess=sess, coord=coord)
+    return init, logits, summary_op
+
+
+def run_model(init, logits, sess, summary_op):
+    sess.run(init)
+
+    coordinator = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess=sess, coord=coordinator)
 
     summary_result = sess.run(summary_op)
-    coord.request_stop()
-    coord.join(threads)
+
+    coordinator.request_stop()
+    coordinator.join(threads)
+
+    sess.run(logits)
 
     summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
     summary_writer.add_summary(summary_result)
     summary_writer.close()
+
+
+if __name__ == '__main__':
+    main()
