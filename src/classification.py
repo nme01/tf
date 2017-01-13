@@ -6,9 +6,6 @@ from data_loading import DataLoader
 class Classifier(object):
     """ Class used for classifying Cifar images. """
 
-    def __init__(self, batch_size: int):
-        self.batch_size = batch_size
-
     def classify(self, images: tf.Tensor) -> tf.Tensor:
         """
         Parameters
