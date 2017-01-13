@@ -42,10 +42,11 @@ def build_model():
 
     reader = DataLoader(data_dir=TMP_DIR)
     classifier = Classifier()
-    trainer = NetTrainer(classifier)
+    trainer = NetTrainer()
     reader.download_dataset_if_necessary()
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
-    train_op = trainer.train(images, labels)
+    logits = classifier.classify(images)
+    train_op = trainer.train(logits, labels)
 
     init = tf.global_variables_initializer()
     summary_op = tf.summary.merge_all()

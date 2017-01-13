@@ -1,18 +1,12 @@
 import tensorflow as tf
 
-from classification import Classifier
-
 
 class NetTrainer(object):
     """
     Class responsible for training the model.
     """
 
-    def __init__(self, classifier: Classifier):
-        self.classifier = classifier
-
-    def train(self, images, labels):
-        logits = self.classifier.classify(images)
+    def train(self, logits, labels):
         loss = self.loss(logits, labels)
         train_step = tf.train.AdamOptimizer().minimize(loss)
 
