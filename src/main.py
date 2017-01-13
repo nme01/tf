@@ -7,6 +7,7 @@ from tensorflow.python.training.coordinator import Coordinator
 
 from classification import Classifier
 from data_loading import DataLoader
+from training import NetTrainer
 
 TMP_DIR = os.path.join('..', 'tmp')
 
@@ -38,18 +39,21 @@ def clean_log_dir():
 
 
 def build_model():
+
     reader = DataLoader(data_dir=TMP_DIR)
-    classifier = Classifier(batch_size=BATCH_SIZE)
+    classifier = Classifier()
+    trainer = NetTrainer(classifier)
     reader.download_dataset_if_necessary()
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
-    logits = classifier.classify(images)
+    train_op = trainer.train(images, labels)
+
     init = tf.global_variables_initializer()
     summary_op = tf.summary.merge_all()
 
-    return init, logits, summary_op
+    return init, train_op, summary_op
 
 
-def run_model(init, logits, sess, summary_op):
+def run_model(init, train_op, sess, summary_op):
     sess.run(init)
 
     coordinator = tf.train.Coordinator()
@@ -60,7 +64,7 @@ def run_model(init, logits, sess, summary_op):
     coordinator.request_stop()
     coordinator.join(threads)
 
-    sess.run(logits)
+    sess.run(train_op)
 
     summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
     summary_writer.add_summary(summary_result)

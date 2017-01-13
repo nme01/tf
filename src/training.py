@@ -1,21 +1,29 @@
 import tensorflow as tf
 
+from classification import Classifier
+
 
 class NetTrainer(object):
     """
     Class responsible for training the model.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, classifier: Classifier):
+        self.classifier = classifier
 
-    def train(self):
-        pass
+    def train(self, images, labels):
+        logits = self.classifier.classify(images)
+        loss = self.loss(logits, labels)
+        train_step = tf.train.AdamOptimizer().minimize(loss)
+
+        for var in tf.trainable_variables():
+            tf.summary.histogram(var.op.name, var)
+
+        return train_step
 
     def loss(self, logits, labels):
         labels = tf.cast(labels, tf.int64)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits, labels, name='cross_entropy_per_example')
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels, name='cross_entropy_per_example')
         cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
         tf.add_to_collection('losses', cross_entropy_mean)
 
