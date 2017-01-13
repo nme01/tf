@@ -1,8 +1,10 @@
 import logging
 import os
 import sys
+from datetime import datetime
 
 import tensorflow as tf
+import time
 from tensorflow.python.training.coordinator import Coordinator
 
 from classification import Classifier
@@ -22,14 +24,14 @@ root.addHandler(ch)
 
 BATCH_SIZE = 1000
 LOG_DIR = os.path.join(TMP_DIR, 'summary')
-MAX_STEPS = 10
+MAX_STEPS = 1000
 
 
 def main():
     clean_log_dir()
     with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
-        init, logits, summary_op = build_model()
-        run_model(init, logits, sess, summary_op)
+        init, loss, train_op, summary_op = build_model()
+        run_model(init, loss, train_op, sess, summary_op)
 
 
 def clean_log_dir():
@@ -39,36 +41,52 @@ def clean_log_dir():
 
 
 def build_model():
-
     reader = DataLoader(data_dir=TMP_DIR)
     classifier = Classifier()
     trainer = NetTrainer()
     reader.download_dataset_if_necessary()
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
     logits = classifier.classify(images)
-    train_op = trainer.train(logits, labels)
+    loss = trainer.loss(logits, labels)
+    train_op = trainer.train(loss)
 
     init = tf.global_variables_initializer()
     summary_op = tf.summary.merge_all()
 
-    return init, train_op, summary_op
+    return init, loss, train_op, summary_op
 
 
-def run_model(init, train_op, sess, summary_op):
+def run_model(init, loss, train_op, sess, summary_op):
+    summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
+
     sess.run(init)
 
     coordinator = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coordinator)
 
-    summary_result = sess.run(summary_op)
+    for step in range(MAX_STEPS):
+        start_time = time.time()
+        _, loss_value = sess.run([train_op, loss])
+        duration = time.time() - start_time
+
+        if step % 10 == 0:
+            num_examples_per_step = BATCH_SIZE
+            examples_per_sec = num_examples_per_step / duration
+            sec_per_batch = float(duration)
+
+            log_line = ('{date:s}: step {step:d}, loss = {loss:.2f} '
+                        '({examples_per_sec:.1f} examples/sec; {sec_per_batch:.3f} sec/batch)').format(
+                date=datetime.now(), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
+                sec_per_batch=sec_per_batch)
+            print(log_line)
+
+        if step % 100 == 0:
+            summary_str = sess.run(summary_op)
+            summary_writer.add_summary(summary_str, step)
 
     coordinator.request_stop()
     coordinator.join(threads)
 
-    sess.run(train_op)
-
-    summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
-    summary_writer.add_summary(summary_result)
     summary_writer.close()
 
 

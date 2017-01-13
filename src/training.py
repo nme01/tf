@@ -6,8 +6,7 @@ class NetTrainer(object):
     Class responsible for training the model.
     """
 
-    def train(self, logits, labels):
-        loss = self.loss(logits, labels)
+    def train(self, loss):
         train_step = tf.train.AdamOptimizer().minimize(loss)
 
         for var in tf.trainable_variables():
