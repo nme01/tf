@@ -136,11 +136,12 @@ class DataLoader(object):
             reshaped_image = tf.reshape(image_raw_data, [self.NUM_OF_COLOR_CHANNELS, self.ORIGINAL_IMAGE_SIZE,
                                                          self.ORIGINAL_IMAGE_SIZE])
 
-            # for convenience we reorder the image so the bytes are ordered by rows by columns by color channels.
+            # for convenience we reorder the image so the bytes are ordered by rows then by columns and then by color
+            # channels
             transposed_image = tf.transpose(reshaped_image, [1, 2, 0])
             float32_img = tf.cast(transposed_image, tf.float32)
 
-        return float32_img, label
+            return float32_img, label
 
     def _distort_image(self, image):
         with ops.name_scope(None, 'distort_image', [image]):
