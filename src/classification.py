@@ -1,10 +1,9 @@
 import tensorflow as tf
-from tensorflow.python.framework import ops
 
-from cifar_reader import CifarReader
+from data_loading import DataLoader
 
 
-class CifarClassifier(object):
+class Classifier(object):
     """ Class used for classifying Cifar images. """
 
     def __init__(self, batch_size: int):
@@ -73,9 +72,9 @@ class CifarClassifier(object):
     def _softmax(self, local4):
         with tf.variable_scope('softmax_linear') as scope:
             inputs_length = local4.get_shape()[-1].value
-            weights = self._create_variable('weights', [inputs_length, CifarReader.NUM_CLASSES],
+            weights = self._create_variable('weights', [inputs_length, DataLoader.NUM_CLASSES],
                                             stddev=1/inputs_length, weight_decay=0.0)
-            biases = tf.get_variable('biases', [CifarReader.NUM_CLASSES], initializer=tf.constant_initializer(0.0))
+            biases = tf.get_variable('biases', [DataLoader.NUM_CLASSES], initializer=tf.constant_initializer(0.0))
             softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
             self._generate_summary(softmax_linear)
 

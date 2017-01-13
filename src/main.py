@@ -5,8 +5,8 @@ import sys
 import tensorflow as tf
 from tensorflow.python.training.coordinator import Coordinator
 
-from cifar_classifier import CifarClassifier
-from cifar_reader import CifarReader
+from classification import Classifier
+from data_loading import DataLoader
 
 TMP_DIR = os.path.join('..', 'tmp')
 
@@ -38,8 +38,8 @@ def clean_log_dir():
 
 
 def build_model():
-    reader = CifarReader(data_dir=TMP_DIR)
-    classifier = CifarClassifier(batch_size=BATCH_SIZE)
+    reader = DataLoader(data_dir=TMP_DIR)
+    classifier = Classifier(batch_size=BATCH_SIZE)
     reader.download_dataset_if_necessary()
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
     logits = classifier.classify(images)

@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 
 
-class CifarReader(object):
+class DataLoader(object):
     """ A class reading the CIFAR-10 data. """
 
     DATA_URL = "http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz"
