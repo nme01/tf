@@ -22,8 +22,8 @@ ch.setFormatter(formatter)
 root.addHandler(ch)
 
 BATCH_SIZE = 1024
-LOG_DIR = os.path.join(TMP_DIR, 'summary')
-MAX_STEPS = 1000
+LOG_DIR = os.path.join(TMP_DIR, 'summary/train')
+MAX_STEPS = 2000
 
 
 def main():
@@ -57,6 +57,7 @@ def build_model():
 
 
 def run_model(init, loss, train_op, sess, summary_op):
+    saver = tf.train.Saver(tf.all_variables())
     summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
 
     sess.run(init)
@@ -74,15 +75,20 @@ def run_model(init, loss, train_op, sess, summary_op):
             examples_per_sec = num_examples_per_step / duration
             sec_per_batch = float(duration)
 
-            log_line = ('{date:s}: step {step:d}, loss = {loss:.2f} '
+            log_line = ('{date:s}: step {step:4d}, loss = {loss:.2f} '
                         '({examples_per_sec:.1f} examples/sec; {sec_per_batch:.3f} sec/batch)').format(
-                date=datetime.now(), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
+                date=str(datetime.now()), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
                 sec_per_batch=sec_per_batch)
             print(log_line)
 
         if step % 100 == 0:
             summary_str = sess.run(summary_op)
             summary_writer.add_summary(summary_str, step)
+
+        if step % 1000 == 0 or (step + 1) == MAX_STEPS:
+            checkpoint_path = os.path.join(LOG_DIR, 'model.ckpt')
+            saver.save(sess, checkpoint_path, global_step=step)
+
 
     coordinator.request_stop()
     coordinator.join(threads)
