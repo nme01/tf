@@ -1,6 +1,4 @@
-import logging
 import os
-import sys
 import time
 from datetime import datetime
 
@@ -11,19 +9,9 @@ from data_loading import DataLoader
 from training import NetTrainer
 
 TMP_DIR = os.path.join('..', 'tmp')
-
-root = logging.getLogger()
-root.setLevel(logging.DEBUG)
-
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s [%(levelname)s]\t %(message)s')
-ch.setFormatter(formatter)
-root.addHandler(ch)
-
 BATCH_SIZE = 1024
-LOG_DIR = os.path.join(TMP_DIR, 'summary/train')
-MAX_STEPS = 2000
+TRAIN_LOG_DIR = os.path.join(TMP_DIR, 'summary/train')
+MAX_STEPS = 10000
 
 
 def main():
@@ -34,9 +22,9 @@ def main():
 
 
 def clean_log_dir():
-    if tf.gfile.Exists(LOG_DIR):
-        tf.gfile.DeleteRecursively(LOG_DIR)
-    tf.gfile.MakeDirs(LOG_DIR)
+    if tf.gfile.Exists(TRAIN_LOG_DIR):
+        tf.gfile.DeleteRecursively(TRAIN_LOG_DIR)
+    tf.gfile.MakeDirs(TRAIN_LOG_DIR)
 
 
 def build_model():
@@ -57,8 +45,8 @@ def build_model():
 
 
 def run_model(init, loss, train_op, sess, summary_op):
-    saver = tf.train.Saver(tf.all_variables())
-    summary_writer = tf.summary.FileWriter(logdir=LOG_DIR, graph=sess.graph)
+    saver = tf.train.Saver(tf.global_variables())
+    summary_writer = tf.summary.FileWriter(logdir=TRAIN_LOG_DIR, graph=sess.graph)
 
     sess.run(init)
 
@@ -86,9 +74,8 @@ def run_model(init, loss, train_op, sess, summary_op):
             summary_writer.add_summary(summary_str, step)
 
         if step % 1000 == 0 or (step + 1) == MAX_STEPS:
-            checkpoint_path = os.path.join(LOG_DIR, 'model.ckpt')
+            checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
             saver.save(sess, checkpoint_path, global_step=step)
-
 
     coordinator.request_stop()
     coordinator.join(threads)
