@@ -1,11 +1,10 @@
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 
 import tensorflow as tf
-import time
-from tensorflow.python.training.coordinator import Coordinator
 
 from classification import Classifier
 from data_loading import DataLoader
@@ -22,7 +21,7 @@ formatter = logging.Formatter('%(asctime)s [%(levelname)s]\t %(message)s')
 ch.setFormatter(formatter)
 root.addHandler(ch)
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 1024
 LOG_DIR = os.path.join(TMP_DIR, 'summary')
 MAX_STEPS = 1000
 
@@ -45,8 +44,9 @@ def build_model():
     classifier = Classifier()
     trainer = NetTrainer()
     reader.download_dataset_if_necessary()
-    images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=True)
-    logits = classifier.classify(images)
+
+    images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=True, distort_image=True)
+    logits = classifier.classify(images, training=True)
     loss = trainer.loss(logits, labels)
     train_op = trainer.train(loss)
 
