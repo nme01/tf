@@ -37,14 +37,14 @@ def build_model():
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=True, distort_image=True)
     logits = classifier.classify(images, training=True)
     correct_predictions = tf.nn.in_top_k(logits, labels, k=1)
-    summary_op = tf.merge_all_summaries()
+    summary_op = tf.summary.merge_all()
 
     return correct_predictions, summary_op
 
 
 def run_model(sess, correct_predictions, summary_op):
     summary_writer = tf.summary.FileWriter(logdir=EVAL_LOG_DIR, graph=sess.graph)
-    saver = tf.train.Saver(tf.all_variables())
+    saver = tf.train.Saver(tf.global_variables())
 
     try:
         while True:

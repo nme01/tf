@@ -30,7 +30,7 @@ class Classifier(object):
             local3 = self._fully_connected_layer(pool2, outputs_number=384, name='local3')
             local4 = self._fully_connected_layer(local3, outputs_number=192, name='local4')
 
-            softmax_linear = self._softmax_linear(local4, training)
+            softmax_linear = self._linear(local4, training)
 
         return softmax_linear
 
@@ -68,7 +68,7 @@ class Classifier(object):
 
             return local3
 
-    def _softmax_linear(self, local4, training):
+    def _linear(self, local4, training):
         with tf.variable_scope('softmax_linear') as scope:
             inputs_length = local4.get_shape()[-1].value
             weights = self._create_variable('weights', [inputs_length, DataLoader.NUM_CLASSES],
