@@ -6,34 +6,39 @@ from data_loading import DataLoader
 class Classifier(object):
     """ Class used for classifying Cifar images. """
 
-    def classify(self, images: tf.Tensor) -> tf.Tensor:
+    def classify(self, images: tf.Tensor, reuse_variables: bool=False) -> tf.Tensor:
         """
         Parameters
         ----------
         images
             images loaded with CifarReader
+        reuse_variables
+            whether to use already existing variables or create new ones. Reusing variables is used for evaluating
+            the model during the training
 
         Returns
         -------
-        logits for each example if training==True, classes of images if training==False
+        logits for each example (size [batch_size, number_of_classes]).
         """
-        with tf.variable_scope('feed_forward'):
-            conv1 = self._conv(images, filter_edge_length=5, num_of_output_channels=64, name='conv1')
-            pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
-            norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm1')
-            conv2 = self._conv(norm1, filter_edge_length=5, num_of_output_channels=64, name='conv2')
-            norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm2')
-            pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+        with tf.variable_scope('feed_forward', reuse=reuse_variables):
+            conv_1 = self._conv(images, filter_edge_length=5, num_of_output_channels=64, name='conv_1',
+                                reuse_variables=reuse_variables)
+            pool_1 = tf.nn.max_pool(conv_1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool_1')
+            norm_1 = tf.nn.lrn(pool_1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm_1')
+            conv_2 = self._conv(norm_1, filter_edge_length=5, num_of_output_channels=64, name='conv_2',
+                                reuse_variables=reuse_variables)
+            norm_2 = tf.nn.lrn(conv_2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm_2')
+            pool_2 = tf.nn.max_pool(norm_2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool_2')
+            fully_connected_1 = self._fully_connected_layer(pool_2, outputs_number=384, name='fully_connected_1',
+                                                            reuse_variables=reuse_variables)
+            fully_connected_2 = self._fully_connected_layer(fully_connected_1, outputs_number=192,
+                                                            name='fully_connected_2', reuse_variables=reuse_variables)
+            linear = self._linear(fully_connected_2, reuse_variables=reuse_variables)
 
-            local3 = self._fully_connected_layer(pool2, outputs_number=384, name='local3')
-            local4 = self._fully_connected_layer(local3, outputs_number=192, name='local4')
+        return linear
 
-            softmax_linear = self._linear(local4)
-
-        return softmax_linear
-
-    def _conv(self, input_tensor, filter_edge_length, num_of_output_channels, name):
-        with tf.variable_scope(name) as scope:
+    def _conv(self, input_tensor, filter_edge_length, num_of_output_channels, name, reuse_variables):
+        with tf.variable_scope(name, reuse=reuse_variables) as scope:
             # last value in input tensor corresponds to the number of input channels in this layer
             input_channels = input_tensor.get_shape()[-1].value
             kernel_shape = [filter_edge_length, filter_edge_length, input_channels, num_of_output_channels]
@@ -49,8 +54,8 @@ class Classifier(object):
 
             return conv2
 
-    def _fully_connected_layer(self, input_tensor, outputs_number, name):
-        with tf.variable_scope(name) as scope:
+    def _fully_connected_layer(self, input_tensor, outputs_number, name, reuse_variables):
+        with tf.variable_scope(name, reuse=reuse_variables) as scope:
             batch_size = input_tensor.get_shape()[0].value
 
             # flatten the tensor so that the output can be calculated by simple matrix multiplication
@@ -66,13 +71,13 @@ class Classifier(object):
 
             return local3
 
-    def _linear(self, local4):
-        with tf.variable_scope('linear') as scope:
-            inputs_length = local4.get_shape()[-1].value
+    def _linear(self, input_tensor, reuse_variables):
+        with tf.variable_scope('linear', reuse=reuse_variables) as scope:
+            inputs_length = input_tensor.get_shape()[-1].value
             weights = self._create_variable('weights', [inputs_length, DataLoader.NUM_CLASSES],
                                             stddev=1/inputs_length, weight_decay=0.0)
             biases = tf.get_variable('biases', [DataLoader.NUM_CLASSES], initializer=tf.constant_initializer(0.0))
-            logits = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
+            logits = tf.add(tf.matmul(input_tensor, weights), biases, name=scope.name)
             self._generate_summary(logits)
 
             # the activation function is not applied here because the loss function
