@@ -37,6 +37,15 @@ def build_model():
     train_logits = classifier.classify(train_images)
     loss = trainer.loss(train_logits, train_labels)
     train_op = trainer.train(loss)
+    training_correct_prediction = tf.nn.in_top_k(train_logits, train_labels, k=1)
+    training_accuracy = tf.reduce_mean(tf.cast(training_correct_prediction, tf.float32))
+    tf.summary.scalar('Accuracy on training set', training_accuracy)
+
+    eval_images, eval_labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=False)
+    eval_logits = classifier.classify(eval_images, reuse_variables=True)
+    validation_correct_prediction = tf.nn.in_top_k(eval_logits, eval_labels, k=1)
+    validation_accuracy = tf.reduce_mean(tf.cast(validation_correct_prediction, tf.float32))
+    tf.summary.scalar('Accuracy on evaluation set', validation_accuracy)
 
     init = tf.global_variables_initializer()
     summary_op = tf.summary.merge_all()
