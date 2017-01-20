@@ -35,7 +35,7 @@ def build_model():
     reader.download_dataset_if_necessary()
 
     images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=True, distort_image=True)
-    logits = classifier.classify(images, training=True)
+    logits = classifier.classify(images)
     correct_predictions = tf.nn.in_top_k(logits, labels, k=1)
     summary_op = tf.summary.merge_all()
 
@@ -56,14 +56,14 @@ def run_model(sess, correct_predictions, summary_op):
 
 def evaluate_net(correct_predictions, saver, sess, summary_op, summary_writer):
     coord = tf.train.Coordinator()
-    chkpt = tf.train.get_checkpoint_state(TRAIN_LOG_DIR)
-    if chkpt and chkpt.model_checkpoint_path:
-        saver.restore(sess, chkpt.model_checkpoint_path)
+    check_point = tf.train.get_checkpoint_state(TRAIN_LOG_DIR)
+    if check_point and check_point.model_checkpoint_path:
+        saver.restore(sess, check_point.model_checkpoint_path)
         # extract global_step from checkpoint's name
-        global_step = chkpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
+        global_step = check_point.model_checkpoint_path.split('/')[-1].split('-')[-1]
     else:
-        print('No checkpoint file found')
-        return
+        raise FileNotFoundError("No checkpoint file found")
+
     threads = None
     # noinspection PyBroadException
     try:

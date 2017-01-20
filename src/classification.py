@@ -6,14 +6,12 @@ from data_loading import DataLoader
 class Classifier(object):
     """ Class used for classifying Cifar images. """
 
-    def classify(self, images: tf.Tensor, training) -> tf.Tensor:
+    def classify(self, images: tf.Tensor) -> tf.Tensor:
         """
         Parameters
         ----------
         images
             images loaded with CifarReader
-        training
-            True if classification is made for training purposes, False otherwise.
 
         Returns
         -------
@@ -30,7 +28,7 @@ class Classifier(object):
             local3 = self._fully_connected_layer(pool2, outputs_number=384, name='local3')
             local4 = self._fully_connected_layer(local3, outputs_number=192, name='local4')
 
-            softmax_linear = self._linear(local4, training)
+            softmax_linear = self._linear(local4)
 
         return softmax_linear
 
@@ -68,8 +66,8 @@ class Classifier(object):
 
             return local3
 
-    def _linear(self, local4, training):
-        with tf.variable_scope('softmax_linear') as scope:
+    def _linear(self, local4):
+        with tf.variable_scope('linear') as scope:
             inputs_length = local4.get_shape()[-1].value
             weights = self._create_variable('weights', [inputs_length, DataLoader.NUM_CLASSES],
                                             stddev=1/inputs_length, weight_decay=0.0)
@@ -77,14 +75,10 @@ class Classifier(object):
             logits = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
             self._generate_summary(logits)
 
-            if training:
-                # the activation function is not applied here because the loss function
-                # "tf.nn.sparse_softmax_cross_entropy_with_logits" only accepts unscaled logits and applies softmax
-                # activation automatically for efficiency
-                return logits
-            else:
-                # if the classification isn't made for training purposes than softmax needs to be applied
-                return tf.nn.softmax(logits)
+            # the activation function is not applied here because the loss function
+            # "tf.nn.sparse_softmax_cross_entropy_with_logits" only accepts unscaled logits and applies softmax
+            # activation automatically for efficiency
+            return logits
 
     def _create_variable(self, name, shape, stddev, weight_decay):
         """

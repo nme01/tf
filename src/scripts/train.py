@@ -33,9 +33,9 @@ def build_model():
     trainer = NetTrainer()
     reader.download_dataset_if_necessary()
 
-    images, labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=True, distort_image=True)
-    logits = classifier.classify(images, training=True)
-    loss = trainer.loss(logits, labels)
+    train_images, train_labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=True, distort_image=True)
+    train_logits = classifier.classify(train_images)
+    loss = trainer.loss(train_logits, train_labels)
     train_op = trainer.train(loss)
 
     init = tf.global_variables_initializer()
