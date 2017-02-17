@@ -8,7 +8,7 @@ import numpy as np
 
 from classification import Classifier
 from data_loading import DataLoader
-from scripts.train import TRAIN_LOG_DIR
+from train import TRAIN_LOG_DIR
 
 TMP_DIR = os.path.join('..', 'tmp')
 BATCH_SIZE = 1024
