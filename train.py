@@ -76,7 +76,7 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
         _, loss_value, eval_accuracy_value = sess.run([train_op, loss, validation_accuracy])
         duration = time.time() - start_time
 
-        if step % 10 == 0:
+        # if step % 10 == 0:
             # num_examples_per_step = BATCH_SIZE
             # examples_per_sec = num_examples_per_step / duration
             # sec_per_batch = float(duration)
