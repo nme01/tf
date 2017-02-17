@@ -17,9 +17,17 @@ MAX_STEPS = 10000
 def main():
     clean_log_dir()
 
-    with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
-        init, loss, train_op, summary_op, validation_accuracy = build_model()
-        run_model(init, loss, train_op, sess, summary_op, validation_accuracy)
+    weight_decays = [0.05, 0.01] + [0.005]+[0.001, 0.0005]
+    lrn_alphas = [0.001, 0.0005]+[0.0001]+[0.00005, 0.00001]
+
+    for weight_decay in weight_decays:
+        for lrn_alpha in lrn_alphas:
+            Classifier.WEIGHT_DECAY = weight_decay
+            Classifier.LRN_ALPHA = lrn_alpha
+
+            with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
+                init, loss, train_op, summary_op, validation_accuracy = build_model()
+                run_model(init, loss, train_op, sess, summary_op, validation_accuracy)
 
 
 def clean_log_dir():
@@ -69,24 +77,24 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
         duration = time.time() - start_time
 
         if step % 10 == 0:
-            num_examples_per_step = BATCH_SIZE
-            examples_per_sec = num_examples_per_step / duration
-            sec_per_batch = float(duration)
+            # num_examples_per_step = BATCH_SIZE
+            # examples_per_sec = num_examples_per_step / duration
+            # sec_per_batch = float(duration)
+            #
+            # log_line = ('{date:s}: step {step:4d}, loss = {loss:.2f} '
+            #             '({examples_per_sec:.1f} examples/sec; {sec_per_batch:.3f} sec/batch)').format(
+            #     date=str(datetime.now()), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
+            #     sec_per_batch=sec_per_batch)
+            # print(log_line)
 
-            log_line = ('{date:s}: step {step:4d}, loss = {loss:.2f} '
-                        '({examples_per_sec:.1f} examples/sec; {sec_per_batch:.3f} sec/batch)').format(
-                date=str(datetime.now()), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
-                sec_per_batch=sec_per_batch)
-            print(log_line)
-
-        if step % 100 == 0:
-            summary_str = sess.run(summary_op)
-            summary_writer.add_summary(summary_str, step)
-            print('validation accuracy: {eval_accuracy:.2f}'.format(eval_accuracy=eval_accuracy_value))
+        # if step % 100 == 0:
+            # summary_str = sess.run(summary_op)
+            # summary_writer.add_summary(summary_str, step)
 
         if step % 1000 == 0 or (step + 1) == MAX_STEPS:
-            checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
-            saver.save(sess, checkpoint_path, global_step=step)
+            # checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
+            # saver.save(sess, checkpoint_path, global_step=step)
+            print('validation accuracy: {eval_accuracy:.2f}'.format(eval_accuracy=eval_accuracy_value))
 
     coordinator.request_stop()
     coordinator.join(threads)
