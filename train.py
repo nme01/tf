@@ -9,7 +9,7 @@ from data_loading import DataLoader
 from training import NetTrainer
 
 TMP_DIR = os.path.join('..', 'tmp')
-BATCH_SIZE = 1024
+BATCH_SIZE = 128
 TRAIN_LOG_DIR = os.path.join(TMP_DIR, 'summary', 'train')
 MAX_STEPS = 100
 
@@ -76,6 +76,7 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
     coordinator = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coordinator)
 
+    eval_accuracy_value = None
     for step in range(MAX_STEPS):
         start_time = time.time()
         _, loss_value, eval_accuracy_value = sess.run([train_op, loss, validation_accuracy])
@@ -96,11 +97,12 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
             # summary_str = sess.run(summary_op)
             # summary_writer.add_summary(summary_str, step)
 
-        if step % 1000 == 0 or (step + 1) == MAX_STEPS:
+        # if step % 1000 == 0 or (step + 1) == MAX_STEPS:
             # checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
             # saver.save(sess, checkpoint_path, global_step=step)
-            print('weight decay={wd:.7f}, lrn alpha: {lrn_alpha:.7f}, validation accuracy: {eval_accuracy:.2f}'.format(
-                wd=Classifier.WEIGHT_DECAY, lrn_alpha=Classifier.LRN_ALPHA, eval_accuracy=eval_accuracy_value))
+
+    print('weight decay={wd:.7f}, lrn alpha: {lrn_alpha:.7f}, validation accuracy: {eval_accuracy:.2f}'.format(
+        wd=Classifier.WEIGHT_DECAY, lrn_alpha=Classifier.LRN_ALPHA, eval_accuracy=eval_accuracy_value))
 
     coordinator.request_stop()
     coordinator.join(threads)
