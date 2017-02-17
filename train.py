@@ -16,6 +16,7 @@ MAX_STEPS = 10000
 
 def main():
     clean_log_dir()
+
     with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
         init, loss, train_op, summary_op, validation_accuracy = build_model()
         run_model(init, loss, train_op, sess, summary_op, validation_accuracy)

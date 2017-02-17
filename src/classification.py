@@ -5,9 +5,9 @@ from data_loading import DataLoader
 
 class Classifier(object):
     """ Class used for classifying Cifar images. """
-    def __init__(self):
-        self.WEIGHT_DECAY = 0.004
-        self.LRN_ALPHA = 0.001/9.0
+
+    WEIGHT_DECAY = 0.004
+    LRN_ALPHA = 0.0001
 
     def classify(self, images: tf.Tensor, reuse_variables: bool=False) -> tf.Tensor:
         """
@@ -27,10 +27,10 @@ class Classifier(object):
             conv_1 = self._conv(images, filter_edge_length=5, num_of_output_channels=64, name='conv_1',
                                 reuse_variables=reuse_variables)
             pool_1 = tf.nn.max_pool(conv_1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool_1')
-            norm_1 = tf.nn.lrn(pool_1, 4, bias=1.0, alpha=self.LRN_ALPHA, beta=0.75, name='norm_1')
+            norm_1 = tf.nn.lrn(pool_1, 4, bias=1.0, alpha=Classifier.LRN_ALPHA, beta=0.75, name='norm_1')
             conv_2 = self._conv(norm_1, filter_edge_length=5, num_of_output_channels=64, name='conv_2',
                                 reuse_variables=reuse_variables)
-            norm_2 = tf.nn.lrn(conv_2, 4, bias=1.0, alpha=self.LRN_ALPHA, beta=0.75, name='norm_2')
+            norm_2 = tf.nn.lrn(conv_2, 4, bias=1.0, alpha=Classifier.LRN_ALPHA, beta=0.75, name='norm_2')
             pool_2 = tf.nn.max_pool(norm_2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool_2')
             fully_connected_1 = self._fully_connected_layer(pool_2, outputs_number=384, name='fully_connected_1',
                                                             reuse_variables=reuse_variables)
@@ -66,7 +66,7 @@ class Classifier(object):
             num_of_input_values = reshape.get_shape()[1].value
 
             weights = self._create_variable('weights', shape=[num_of_input_values, outputs_number],
-                                            stddev=0.04, weight_decay=self.WEIGHT_DECAY)
+                                            stddev=0.04, weight_decay=Classifier.WEIGHT_DECAY)
             biases = tf.get_variable('biases', [outputs_number], initializer=tf.constant_initializer(0.1))
             local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
 
