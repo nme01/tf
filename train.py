@@ -20,6 +20,8 @@ def main():
 
     for weight_decay in weight_decays:
         for lrn_alpha in lrn_alphas:
+            start_time = time.time()
+
             clean_log_dir()
             Classifier.WEIGHT_DECAY = weight_decay
             Classifier.LRN_ALPHA = lrn_alpha
@@ -28,6 +30,9 @@ def main():
             with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
                 init, loss, train_op, summary_op, validation_accuracy = build_model()
                 run_model(init, loss, train_op, sess, summary_op, validation_accuracy)
+
+            duration = float(time.time() - start_time)
+            print("Duration: {duration:.3f}".format(duration=duration))
 
 
 def clean_log_dir():
