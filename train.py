@@ -94,7 +94,8 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
         if step % 1000 == 0 or (step + 1) == MAX_STEPS:
             # checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
             # saver.save(sess, checkpoint_path, global_step=step)
-            print('validation accuracy: {eval_accuracy:.2f}'.format(eval_accuracy=eval_accuracy_value))
+            print('weight decay={wd:.7f}, lrn alpha: {lrn_alpha:.7f}, validation accuracy: {eval_accuracy:.2f}'.format(
+                wd=Classifier.WEIGHT_DECAY, lrn_alpha=Classifier.LRN_ALPHA, eval_accuracy=eval_accuracy_value))
 
     coordinator.request_stop()
     coordinator.join(threads)
