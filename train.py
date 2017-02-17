@@ -15,13 +15,12 @@ MAX_STEPS = 10000
 
 
 def main():
-    clean_log_dir()
-
     weight_decays = [0.05, 0.01] + [0.005]+[0.001, 0.0005]
     lrn_alphas = [0.001, 0.0005]+[0.0001]+[0.00005, 0.00001]
 
     for weight_decay in weight_decays:
         for lrn_alpha in lrn_alphas:
+            clean_log_dir()
             Classifier.WEIGHT_DECAY = weight_decay
             Classifier.LRN_ALPHA = lrn_alpha
 
