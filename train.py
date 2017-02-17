@@ -10,8 +10,8 @@ from training import NetTrainer
 
 TMP_DIR = os.path.join('..', 'tmp')
 BATCH_SIZE = 1024
-TRAIN_LOG_DIR = os.path.join(TMP_DIR, 'summary/train')
-MAX_STEPS = 10000
+TRAIN_LOG_DIR = os.path.join(TMP_DIR, 'summary', 'train')
+MAX_STEPS = 100
 
 
 def main():
@@ -23,6 +23,7 @@ def main():
             clean_log_dir()
             Classifier.WEIGHT_DECAY = weight_decay
             Classifier.LRN_ALPHA = lrn_alpha
+            tf.reset_default_graph()
 
             with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
                 init, loss, train_op, summary_op, validation_accuracy = build_model()
