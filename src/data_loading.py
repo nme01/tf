@@ -114,7 +114,7 @@ class DataLoader(object):
 
         file_path, _ = request.urlretrieve(self.DATA_URL, file_path, _progress)
         statinfo = os.stat(file_path)
-        sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
+        #sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
 
         return file_path
 
