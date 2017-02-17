@@ -17,8 +17,8 @@ MAX_STEPS = 10000
 def main():
     clean_log_dir()
     with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
-        init, loss, train_op, summary_op = build_model()
-        run_model(init, loss, train_op, sess, summary_op)
+        init, loss, train_op, summary_op, validation_accuracy = build_model()
+        run_model(init, loss, train_op, sess, summary_op, validation_accuracy)
 
 
 def clean_log_dir():
@@ -50,10 +50,10 @@ def build_model():
     init = tf.global_variables_initializer()
     summary_op = tf.summary.merge_all()
 
-    return init, loss, train_op, summary_op
+    return init, loss, train_op, summary_op, validation_accuracy
 
 
-def run_model(init, loss, train_op, sess, summary_op):
+def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
     saver = tf.train.Saver(tf.global_variables())
     summary_writer = tf.summary.FileWriter(logdir=TRAIN_LOG_DIR, graph=sess.graph)
 
@@ -64,7 +64,7 @@ def run_model(init, loss, train_op, sess, summary_op):
 
     for step in range(MAX_STEPS):
         start_time = time.time()
-        _, loss_value = sess.run([train_op, loss])
+        _, loss_value, eval_accuracy_value = sess.run([train_op, loss, validation_accuracy])
         duration = time.time() - start_time
 
         if step % 10 == 0:
@@ -81,6 +81,7 @@ def run_model(init, loss, train_op, sess, summary_op):
         if step % 100 == 0:
             summary_str = sess.run(summary_op)
             summary_writer.add_summary(summary_str, step)
+            print('validation accuracy: {eval_accuracy:.2f}'.format(eval_accuracy=eval_accuracy_value))
 
         if step % 1000 == 0 or (step + 1) == MAX_STEPS:
             checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
