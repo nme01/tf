@@ -21,7 +21,7 @@ def main():
         for lrn_alpha in lrn_alphas:
             start_time = time.time()
 
-            clean_log_dir()
+            clean_specific_log_dir()
             Classifier.WEIGHT_DECAY = weight_decay
             Classifier.LRN_ALPHA = lrn_alpha
             tf.reset_default_graph()
@@ -34,10 +34,11 @@ def main():
             print("Duration: {duration:.3f}".format(duration=duration))
 
 
-def clean_log_dir():
-    if tf.gfile.Exists(TRAIN_LOG_DIR):
-        tf.gfile.DeleteRecursively(TRAIN_LOG_DIR)
-    tf.gfile.MakeDirs(TRAIN_LOG_DIR)
+def clean_specific_log_dir():
+    specifi_log_dir = get_specific_log_dir_path()
+    if tf.gfile.Exists(specifi_log_dir):
+        tf.gfile.DeleteRecursively(specifi_log_dir)
+    tf.gfile.MakeDirs(specifi_log_dir)
 
 
 def build_model():
@@ -68,7 +69,7 @@ def build_model():
 
 def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
     saver = tf.train.Saver(tf.global_variables())
-    log_dir = os.path.join(TRAIN_LOG_DIR, 'wd'+str(Classifier.WEIGHT_DECAY), 'lrn'+str(Classifier.LRN_ALPHA))
+    log_dir = get_specific_log_dir_path()
     summary_writer = tf.summary.FileWriter(logdir=log_dir, graph=sess.graph)
 
     sess.run(init)
@@ -98,7 +99,7 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
             summary_writer.add_summary(summary_str, step)
 
         if step % 1000 == 0 or (step + 1) == MAX_STEPS:
-            checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
+            checkpoint_path = os.path.join(log_dir, 'model.chkpt')
             saver.save(sess, checkpoint_path, global_step=step)
 
     print('weight decay={wd:.7f}, lrn alpha: {lrn_alpha:.7f}, validation accuracy: {eval_accuracy:.2f}'.format(
@@ -108,6 +109,10 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
     coordinator.join(threads)
 
     summary_writer.close()
+
+
+def get_specific_log_dir_path():
+    return os.path.join(TRAIN_LOG_DIR, 'wd' + str(Classifier.WEIGHT_DECAY), 'lrn' + str(Classifier.LRN_ALPHA))
 
 
 if __name__ == '__main__':
