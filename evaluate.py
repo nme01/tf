@@ -10,7 +10,7 @@ from classification import Classifier
 from data_loading import DataLoader
 from train import TRAIN_LOG_DIR
 
-TMP_DIR = os.path.join('..', 'tmp')
+TMP_DIR = os.path.join('tmp')
 BATCH_SIZE = 1024
 EVAL_LOG_DIR = os.path.join(TMP_DIR, 'summary/eval')
 NUM_OF_ITERATIONS = int(math.ceil(DataLoader.EVAL_NUM_OF_EXAMPLES_PER_EPOCH / BATCH_SIZE))

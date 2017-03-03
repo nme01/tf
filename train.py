@@ -1,6 +1,5 @@
 import os
 import time
-from datetime import datetime
 
 import tensorflow as tf
 
@@ -8,10 +7,10 @@ from classification import Classifier
 from data_loading import DataLoader
 from training import NetTrainer
 
-TMP_DIR = os.path.join('..', 'tmp')
+TMP_DIR = os.path.join('tmp')
 BATCH_SIZE = 128
 TRAIN_LOG_DIR = os.path.join(TMP_DIR, 'summary', 'train')
-MAX_STEPS = 100
+MAX_STEPS = 144000
 
 
 def main():
@@ -69,7 +68,8 @@ def build_model():
 
 def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
     saver = tf.train.Saver(tf.global_variables())
-    summary_writer = tf.summary.FileWriter(logdir=TRAIN_LOG_DIR, graph=sess.graph)
+    log_dir = os.path.join(TRAIN_LOG_DIR, 'wd'+str(Classifier.WEIGHT_DECAY), 'lrn'+str(Classifier.LRN_ALPHA))
+    summary_writer = tf.summary.FileWriter(logdir=log_dir, graph=sess.graph)
 
     sess.run(init)
 
@@ -78,31 +78,31 @@ def run_model(init, loss, train_op, sess, summary_op, validation_accuracy):
 
     eval_accuracy_value = None
     for step in range(MAX_STEPS):
-        start_time = time.time()
+        # start_time = time.time()
         _, loss_value, eval_accuracy_value = sess.run([train_op, loss, validation_accuracy])
-        duration = time.time() - start_time
+        # duration = time.time() - start_time
 
         # if step % 10 == 0:
-            # num_examples_per_step = BATCH_SIZE
-            # examples_per_sec = num_examples_per_step / duration
-            # sec_per_batch = float(duration)
-            #
-            # log_line = ('{date:s}: step {step:4d}, loss = {loss:.2f} '
-            #             '({examples_per_sec:.1f} examples/sec; {sec_per_batch:.3f} sec/batch)').format(
-            #     date=str(datetime.now()), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
-            #     sec_per_batch=sec_per_batch)
-            # print(log_line)
+        #     num_examples_per_step = BATCH_SIZE
+        #     examples_per_sec = num_examples_per_step / duration
+        #     sec_per_batch = float(duration)
+        #
+        #     log_line = ('{date:s}: step {step:4d}, loss = {loss:.2f} '
+        #                 '({examples_per_sec:.1f} examples/sec; {sec_per_batch:.3f} sec/batch)').format(
+        #         date=str(datetime.now()), step=step, loss=loss_value, examples_per_sec=examples_per_sec,
+        #         sec_per_batch=sec_per_batch)
+        #     print(log_line)
 
-        # if step % 100 == 0:
-            # summary_str = sess.run(summary_op)
-            # summary_writer.add_summary(summary_str, step)
+        if step % 100 == 0:
+            summary_str = sess.run(summary_op)
+            summary_writer.add_summary(summary_str, step)
 
-        # if step % 1000 == 0 or (step + 1) == MAX_STEPS:
-            # checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
-            # saver.save(sess, checkpoint_path, global_step=step)
+        if step % 1000 == 0 or (step + 1) == MAX_STEPS:
+            checkpoint_path = os.path.join(TRAIN_LOG_DIR, 'model.chkpt')
+            saver.save(sess, checkpoint_path, global_step=step)
 
     print('weight decay={wd:.7f}, lrn alpha: {lrn_alpha:.7f}, validation accuracy: {eval_accuracy:.2f}'.format(
-        wd=Classifier.WEIGHT_DECAY, lrn_alpha=Classifier.LRN_ALPHA, eval_accuracy=eval_accuracy_value))
+          wd=Classifier.WEIGHT_DECAY, lrn_alpha=Classifier.LRN_ALPHA, eval_accuracy=eval_accuracy_value))
 
     coordinator.request_stop()
     coordinator.join(threads)
