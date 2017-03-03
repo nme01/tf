@@ -97,7 +97,7 @@ class Classifier(object):
         var = tf.get_variable(name, shape, initializer=tf.truncated_normal_initializer(stddev=stddev))
 
         if weight_decay is not None:
-            weight_decay = tf.mul(tf.nn.l2_loss(var), weight_decay, name='weight_loss')
+            weight_decay = tf.multiply(tf.nn.l2_loss(var), weight_decay, name='weight_loss')
             tf.add_to_collection('losses', weight_decay)
 
         return var
