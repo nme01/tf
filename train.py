@@ -19,12 +19,13 @@ def main():
 
     for weight_decay in weight_decays:
         for lrn_alpha in lrn_alphas:
-            start_time = time.time()
-
-            clean_specific_log_dir()
             Classifier.WEIGHT_DECAY = weight_decay
             Classifier.LRN_ALPHA = lrn_alpha
+
+            clean_specific_log_dir()
             tf.reset_default_graph()
+
+            start_time = time.time()
 
             with tf.Session(config=tf.ConfigProto(log_device_placement=False)).as_default() as sess:
                 init, loss, train_op, summary_op, validation_accuracy = build_model()
