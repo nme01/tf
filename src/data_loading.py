@@ -82,8 +82,13 @@ class DataLoader(object):
     def load_dataset(self, batch_size: int, use_train_data: bool, distort_image: bool):
         cifar_folder_path = os.path.join(self.data_dir, self.CIFAR_DATA_SUBFOLDER_NAME)
         if use_train_data:
-            file_names = [os.path.join(cifar_folder_path, 'data_batch_{:d}.bin'.format(i)) for i in range(1, 6)]
-            num_examples_per_epoch = self.TRAIN_NUM_OF_EXAMPLES_PER_EPOCH
+            file_names = []
+            for i in range(1, 2):  # should be range(1,6), but it was restricted on purpose to cause overfitting
+                file_name = os.path.join(cifar_folder_path, 'data_batch_{:d}.bin'.format(i))
+                file_names.append(file_name)
+
+            # shouldn't be divided by 6, but it is like that on purpose to cause overfitting
+            num_examples_per_epoch = self.TRAIN_NUM_OF_EXAMPLES_PER_EPOCH / 6
         else:
             file_names = [os.path.join(cifar_folder_path, 'test_batch.bin')]
             num_examples_per_epoch = self.EVAL_NUM_OF_EXAMPLES_PER_EPOCH
