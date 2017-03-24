@@ -57,7 +57,7 @@ def build_model():
     tf.summary.scalar('Accuracy on training set', training_accuracy)
 
     eval_images, eval_labels = reader.load_dataset(batch_size=BATCH_SIZE, use_train_data=False, distort_image=False)
-    eval_logits = classifier.classify(eval_images, reuse_variables=True)
+    eval_logits = classifier.classify(eval_images, evaluation_mode=True)
     validation_correct_prediction = tf.nn.in_top_k(eval_logits, eval_labels, k=1)
     validation_accuracy = tf.reduce_mean(tf.cast(validation_correct_prediction, tf.float32))
     tf.summary.scalar('Accuracy on evaluation set', validation_accuracy)
