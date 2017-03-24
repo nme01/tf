@@ -114,12 +114,12 @@ class DataLoader(object):
     def _download_cifar_data(self, file_path, file_name):
         def _progress(count, block_size, total_size):
             progress = float(count * block_size) / total_size * 100.0
-            sys.stdout.write('\r>> Downloading {:s} {:.1f}%'.format(file_name, progress))
-            sys.stdout.flush()
+            # sys.stdout.write('\r>> Downloading {:s} {:.1f}%'.format(file_name, progress))
+            # sys.stdout.flush()
 
         file_path, _ = request.urlretrieve(self.DATA_URL, file_path, _progress)
         statinfo = os.stat(file_path)
-        #sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
+        sys.stdout.write(' '.join(['\nSuccessfully downloaded', file_name, str(statinfo.st_size), 'bytes.']))
 
         return file_path
 
