@@ -21,7 +21,8 @@ def main():
     occluders = generate_occluders()
     heatmaps = create_heatmaps(images, labels, occluders)
 
-    plot_images_and_heatmaps(images, heatmaps)
+    plottable_images = denormalize_images(images)
+    plot_images_and_heatmaps(plottable_images, heatmaps.astype(np.ubyte))
 
 
 def load_images_and_labels():
@@ -128,22 +129,23 @@ def denormalize_images(images):
     repeated_max_values = np.tile(max_image_values[~bool_indices], (1, IMAGE_SIZE*IMAGE_SIZE*NUM_OF_CHANNELS))
     flattened_images[~bool_indices] = flattened_images[~bool_indices] * 128 / repeated_max_values
 
-    flattened_images = flattened_images.astype(np.ushort) + 127
+    flattened_images = flattened_images + 127
+    flattened_images = flattened_images.astype(np.ubyte)
+
     plottable_images = np.reshape(flattened_images, (BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
 
     return plottable_images
 
 
-def plot_images_and_heatmaps(images, heatmaps):
-    plottable_images = denormalize_images(images)
-    num_of_rows = 4
-    for i in range(1, num_of_rows + 1):
-        plt.subplot(num_of_rows, 2, 2 * i - 1)
-        plt.imshow(plottable_images[i-1])
+def plot_images_and_heatmaps(plottable_images, heatmaps):
+    num_of_rows = 8
+    for i in range(num_of_rows):
+        plt.subplot(num_of_rows, 2, 2 * i + 1)
+        plt.imshow(plottable_images[i])
         remove_ticks_and_labels()
 
-        plt.subplot(num_of_rows, 2, 2 * i)
-        plt.imshow(heatmaps[i-1])
+        plt.subplot(num_of_rows, 2, 2 * i + 2)
+        plt.imshow(heatmaps[i])
         remove_ticks_and_labels()
 
     plt.show()
