@@ -130,6 +130,9 @@ def denormalize_images(images):
     flattened_images[~bool_indices] = flattened_images[~bool_indices] * 128 / repeated_max_values
 
     flattened_images = flattened_images + 127
+    flattened_images = np.maximum(flattened_images, 0)
+    flattened_images = np.minimum(flattened_images, 255)
+
     flattened_images = flattened_images.astype(np.ubyte)
 
     plottable_images = np.reshape(flattened_images, (BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
