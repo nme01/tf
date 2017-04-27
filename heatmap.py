@@ -21,15 +21,7 @@ def main():
     occluders = generate_occluders()
     heatmaps = create_heatmaps(images, labels, occluders)
 
-    plottable_images = denormalize_images(images)
-
-    # implement proper plotting of heatmaps along original images
-    # img = plottable_images[0]
-    # plt.imshow(heatmaps[0, :, :].squeeze(), cmap='hot', interpolation='nearest')
-    # plt.imshow(img)
-    plt.imshow(images[0])
-    plt.show()
-    # TODO sprawdzić jaka jest różnica pomiędzy oryginalnym obrazkiem a zdenormalizowanym (idealnie by było jakby były identyczne)
+    plot_images_and_heatmaps(images, heatmaps)
 
 
 def load_images_and_labels():
@@ -119,12 +111,47 @@ def get_occluded_images_dict(images, occluders):
 
 def denormalize_images(images):
     flattened_images = np.reshape(images, (BATCH_SIZE, IMAGE_SIZE * IMAGE_SIZE * NUM_OF_CHANNELS))
+
     max_image_values = np.max(flattened_images, axis=1)
     min_image_values = np.min(flattened_images, axis=1)
-    min_max_ranges = max_image_values - min_image_values
-    plottable_images = np.array([(images[i, :] - min_image_values[i]) / min_max_ranges[i] for i in range(BATCH_SIZE)])
+
+    lower_bound_margin = min_image_values + 127  # by how much min value can be expanded so that it reaches -127
+    upper_bound_margin = 128 - max_image_values  # by how much max value can be expanded so that it reaches 128
+
+    bool_indices = lower_bound_margin < upper_bound_margin
+    min_image_values = np.reshape(min_image_values, (BATCH_SIZE, 1))
+    max_image_values = np.reshape(max_image_values, (BATCH_SIZE, 1))
+
+    repeated_min_values = np.tile(min_image_values[bool_indices], (1, IMAGE_SIZE*IMAGE_SIZE*NUM_OF_CHANNELS))
+    flattened_images[bool_indices] = flattened_images[bool_indices] * (-127) / repeated_min_values
+
+    repeated_max_values = np.tile(max_image_values[~bool_indices], (1, IMAGE_SIZE*IMAGE_SIZE*NUM_OF_CHANNELS))
+    flattened_images[~bool_indices] = flattened_images[~bool_indices] * 128 / repeated_max_values
+
+    flattened_images = flattened_images.astype(np.ushort) + 127
+    plottable_images = np.reshape(flattened_images, (BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
 
     return plottable_images
+
+
+def plot_images_and_heatmaps(images, heatmaps):
+    plottable_images = denormalize_images(images)
+    num_of_rows = 4
+    for i in range(1, num_of_rows + 1):
+        plt.subplot(num_of_rows, 2, 2 * i - 1)
+        plt.imshow(plottable_images[i-1])
+        remove_ticks_and_labels()
+
+        plt.subplot(num_of_rows, 2, 2 * i)
+        plt.imshow(heatmaps[i-1])
+        remove_ticks_and_labels()
+
+    plt.show()
+
+
+def remove_ticks_and_labels():
+    plt.tick_params(axis='both', which='both', bottom='off', top='off', labelbottom='off',
+                    left='off', right='off', labelleft='off')
 
 
 if __name__ == '__main__':
