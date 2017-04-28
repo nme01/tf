@@ -14,7 +14,7 @@ patch_size = 7
 
 IMAGE_SIZE = DataLoader.IMAGE_SIZE
 NUM_OF_CLASSES = DataLoader.NUM_CLASSES
-OCCLUDER_SIZE = 4
+OCCLUDER_SIZE = 7
 BATCH_SIZE = 16
 
 
@@ -24,7 +24,7 @@ def main():
     heatmaps = create_heatmaps(images, labels, occluders)
 
     plottable_images = denormalize_images(images)
-    plot_images_and_heatmaps(plottable_images, heatmaps.astype(np.ubyte))
+    plot_images_and_heatmaps(plottable_images, heatmaps)
 
 
 def load_images_and_labels():
@@ -178,7 +178,7 @@ def plot_images_and_heatmaps(plottable_images, heatmaps):
         remove_ticks_and_labels()
 
         plt.subplot(num_of_rows, 2, 2 * i + 2)
-        plt.imshow(heatmaps[i])
+        plt.imshow(heatmaps[i], cmap='hot')
         remove_ticks_and_labels()
 
     plt.show()
