@@ -72,8 +72,8 @@ def create_heatmaps(images, labels, occluders):
 
     occluded_images_dict = get_occluded_images_dict(images, occluders)
     with tf.Session() as sess:
-        images = tf.placeholder(dtype=tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
-        logits_op = classifier.classify(images, evaluation_mode=False)
+        images_ph = tf.placeholder(dtype=tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
+        logits_op = classifier.classify(images_ph, evaluation_mode=False)
 
         sess.run(tf.global_variables_initializer())
 
@@ -81,19 +81,42 @@ def create_heatmaps(images, labels, occluders):
             occluded_images = occluded_images_dict[top_left_coords]
             occluder = occluders[top_left_coords]
 
-            logits = sess.run(logits_op, feed_dict={images: occluded_images})
+            logits = sess.run(logits_op, feed_dict={images_ph: occluded_images})
+            probabilities = softmax(logits)
 
-            # normalize logits so that they sum up to one across horizontal axis
-            logit_sums = np.sum(logits, axis=1)
-            logits = logits[np.arange(logits.shape[0]), labels]
-            logits = logits / logit_sums
+            # select only those probabilities which correspond to proper labels
+            probabilities = probabilities[np.arange(logits.shape[0]), labels]
+            probabilities = np.reshape(probabilities, (BATCH_SIZE, 1))
 
             x_positions = occluder['x_coords']
             y_positions = occluder['y_coords']
-            heatmaps[:, x_positions, y_positions, i] = logits
+
+            for j in range(BATCH_SIZE):
+                heatmaps[j, x_positions, y_positions, i] = probabilities[j]
 
     heatmaps = np.nanmean(heatmaps, axis=3)
+    # DEBUG
+    # for i in range(BATCH_SIZE-1):
+    #     for j in range(i, BATCH_SIZE):
+    #         if np.all(heatmaps[0] == heatmaps[1]):
+    #             print("Heamaps nr {:d} and {:d} are the same".format(i,j))
+
     return heatmaps
+
+
+def softmax(logits):
+    max_logits = np.max(logits, axis=1)
+    max_logits = np.reshape(max_logits, (BATCH_SIZE, 1))
+    max_logits = np.tile(max_logits, (1, NUM_OF_CLASSES))
+
+    probabilities = np.exp(logits - max_logits)
+
+    sum_of_probabilities = np.sum(probabilities, axis=1)
+    sum_of_probabilities = np.reshape(sum_of_probabilities, (BATCH_SIZE, 1))
+    sum_of_probabilities = np.tile(sum_of_probabilities, (1, NUM_OF_CLASSES))
+    probabilities = probabilities / sum_of_probabilities
+
+    return probabilities
 
 
 def get_occluded_images_dict(images, occluders):
@@ -143,7 +166,7 @@ def denormalize_images(images):
 
 
 def plot_images_and_heatmaps(plottable_images, heatmaps):
-    num_of_rows = 8
+    num_of_rows = 2
     for i in range(num_of_rows):
         plt.subplot(num_of_rows, 2, 2 * i + 1)
         plt.imshow(plottable_images[i])
