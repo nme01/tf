@@ -1,0 +1,3 @@
+number of iterations run: 49000
+weight decay: 0.0005
+local contrast normalization: 0.00001

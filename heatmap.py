@@ -17,8 +17,8 @@ NUM_OF_CLASSES = DataLoader.NUM_CLASSES
 OCCLUDER_SIZE = 10
 BATCH_SIZE = 16
 NUM_OF_SHOWN_IMAGES_ROWS = 4
-NUM_OF_SHOW_IMAGES_COLS = 4
-
+NUM_OF_SHOW_IMAGES_COLS = 8
+MODEL_DIR = 'model'
 
 def main():
     images, labels = load_images_and_labels()  # images.shape=[128, 24, 24, 3]
@@ -73,8 +73,7 @@ def create_heatmaps(images, labels, occluders):
     images_ph = tf.placeholder(dtype=tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
     logits_op = classifier.classify(images_ph, evaluation_mode=False)
 
-    model_path = join(TRAIN_LOG_DIR, 'model.chkpt-49999')
-    # model_path = join(TRAIN_LOG_DIR, 'model.chkpt-143999')
+    model_path = join(MODEL_DIR, 'model.chkpt-49000')
     saver = tf.train.Saver()
 
     heatmaps = np.empty((BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, len(occluders)))
@@ -188,9 +187,6 @@ def plot_images_and_heatmaps(plottable_images, heatmaps, labels):
     }
 
     assert NUM_OF_SHOW_IMAGES_COLS % 2 == 0
-
-    # divide num_of_cols by two because there is always image and its heatmap
-    num_of_cols = NUM_OF_SHOW_IMAGES_COLS / 2  # type: int
 
     for i in range(0, NUM_OF_SHOWN_IMAGES_ROWS * NUM_OF_SHOW_IMAGES_COLS, 2):
         tmp_iter = int(i/2)
