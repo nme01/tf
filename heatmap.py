@@ -1,9 +1,11 @@
+from os.path import join
+
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from classification import Classifier
-from train import TMP_DIR
+from train import TMP_DIR, TRAIN_LOG_DIR
 from data_loading import DataLoader
 
 
@@ -66,16 +68,19 @@ def generate_occluders():
 
 def create_heatmaps(images, labels, occluders):
     classifier = Classifier()
+    images_ph = tf.placeholder(dtype=tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
+    logits_op = classifier.classify(images_ph, evaluation_mode=False)
+
+    model_path = join(TRAIN_LOG_DIR, 'model.chkpt-49999')
+    saver = tf.train.Saver()
 
     heatmaps = np.empty((BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, len(occluders)))
     heatmaps[:] = np.nan
 
     occluded_images_dict = get_occluded_images_dict(images, occluders)
-    with tf.Session() as sess:
-        images_ph = tf.placeholder(dtype=tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
-        logits_op = classifier.classify(images_ph, evaluation_mode=False)
 
-        sess.run(tf.global_variables_initializer())
+    with tf.Session() as sess:
+        saver.restore(sess, model_path)
 
         for i, top_left_coords in enumerate(occluded_images_dict.keys()):
             occluded_images = occluded_images_dict[top_left_coords]
