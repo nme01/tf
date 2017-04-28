@@ -67,7 +67,9 @@ def generate_occluders():
 def create_heatmaps(images, labels, occluders):
     classifier = Classifier()
 
-    heatmaps = np.zeros((BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE))
+    heatmaps = np.empty((BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, len(occluders)))
+    heatmaps[:] = np.nan
+
     occluded_images_dict = get_occluded_images_dict(images, occluders)
     with tf.Session() as sess:
         images = tf.placeholder(dtype=tf.float32, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_OF_CHANNELS))
@@ -75,7 +77,7 @@ def create_heatmaps(images, labels, occluders):
 
         sess.run(tf.global_variables_initializer())
 
-        for top_left_coords in occluded_images_dict.keys():
+        for i, top_left_coords in enumerate(occluded_images_dict.keys()):
             occluded_images = occluded_images_dict[top_left_coords]
             occluder = occluders[top_left_coords]
 
@@ -88,9 +90,9 @@ def create_heatmaps(images, labels, occluders):
 
             x_positions = occluder['x_coords']
             y_positions = occluder['y_coords']
-            heatmaps[:, x_positions, y_positions] += logits
+            heatmaps[:, x_positions, y_positions, i] = logits
 
-    heatmaps /= BATCH_SIZE
+    heatmaps = np.nanmean(heatmaps, axis=3)
     return heatmaps
 
 
