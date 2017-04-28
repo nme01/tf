@@ -14,8 +14,10 @@ patch_size = 7
 
 IMAGE_SIZE = DataLoader.IMAGE_SIZE
 NUM_OF_CLASSES = DataLoader.NUM_CLASSES
-OCCLUDER_SIZE = 7
+OCCLUDER_SIZE = 10
 BATCH_SIZE = 16
+NUM_OF_SHOWN_IMAGES_ROWS = 4
+NUM_OF_SHOW_IMAGES_COLS = 4
 
 
 def main():
@@ -24,7 +26,7 @@ def main():
     heatmaps = create_heatmaps(images, labels, occluders)
 
     plottable_images = denormalize_images(images)
-    plot_images_and_heatmaps(plottable_images, heatmaps)
+    plot_images_and_heatmaps(plottable_images, heatmaps, labels)
 
 
 def load_images_and_labels():
@@ -72,6 +74,7 @@ def create_heatmaps(images, labels, occluders):
     logits_op = classifier.classify(images_ph, evaluation_mode=False)
 
     model_path = join(TRAIN_LOG_DIR, 'model.chkpt-49999')
+    # model_path = join(TRAIN_LOG_DIR, 'model.chkpt-143999')
     saver = tf.train.Saver()
 
     heatmaps = np.empty((BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, len(occluders)))
@@ -170,17 +173,42 @@ def denormalize_images(images):
     return plottable_images
 
 
-def plot_images_and_heatmaps(plottable_images, heatmaps):
-    num_of_rows = 2
-    for i in range(num_of_rows):
-        plt.subplot(num_of_rows, 2, 2 * i + 1)
-        plt.imshow(plottable_images[i])
+def plot_images_and_heatmaps(plottable_images, heatmaps, labels):
+    label_to_title_dict = {
+        0: 'samolot',
+        1: 'samochód',
+        2: 'ptak',
+        3: 'kot',
+        4: 'jeleń',
+        5: 'pies',
+        6: 'żaba',
+        7: 'koń',
+        8: 'statek',
+        9: 'ciężarówka'
+    }
+
+    assert NUM_OF_SHOW_IMAGES_COLS % 2 == 0
+
+    # divide num_of_cols by two because there is always image and its heatmap
+    num_of_cols = NUM_OF_SHOW_IMAGES_COLS / 2  # type: int
+
+    for i in range(0, NUM_OF_SHOWN_IMAGES_ROWS * NUM_OF_SHOW_IMAGES_COLS, 2):
+        tmp_iter = int(i/2)
+        image = plottable_images[tmp_iter]
+        label = labels[tmp_iter]
+        heatmap = heatmaps[tmp_iter]
+
+        plt.subplot(NUM_OF_SHOWN_IMAGES_ROWS, NUM_OF_SHOW_IMAGES_COLS, i+1)
+        plt.imshow(image)
+        title = label_to_title_dict[label]
+        plt.title(title)
         remove_ticks_and_labels()
 
-        plt.subplot(num_of_rows, 2, 2 * i + 2)
-        plt.imshow(heatmaps[i], cmap='hot')
+        plt.subplot(NUM_OF_SHOWN_IMAGES_ROWS, NUM_OF_SHOW_IMAGES_COLS, i + 2)
+        plt.imshow(heatmap, cmap='hot')
         remove_ticks_and_labels()
 
+    plt.tight_layout()
     plt.show()
 
 
